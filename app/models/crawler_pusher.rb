@@ -57,9 +57,10 @@ class CrawlerPusher
       token: @token,
       url: url,
       autoparse: 'true',
-      store: 'true'
-      # callback: 'true',
-      # crawler: 'testcrawler'
+      format: 'json',
+      # store: 'true'
+      callback: 'true',
+      crawler: 'testcrawler'
     })
 
     uri
