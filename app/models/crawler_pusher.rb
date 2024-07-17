@@ -36,7 +36,7 @@ class CrawlerPusher
   protected
 
   def push_parallel(urls)
-    Parallel.map(urls, in_threads: 5, finish: -> (item, i, result) { result&.code == "200" ? logger.info("#{asin_code(item)}: OK") : logger.error("#{asin_code(item)}: FAILED - #{result&.body}") }) do |url|
+    Parallel.map(urls, in_threads: 5) do |url|
       push_one(url)
     end
   end
@@ -45,6 +45,12 @@ class CrawlerPusher
     logger.info("#{asin_code(url)}: Started crawling..")
     begin
       response = Net::HTTP.get_response(prepare_uri(url))
+
+      if response.code == "200"
+        logger.info("#{asin_code(url)}: OK")
+      else
+        logger.error("#{asin_code(url)}: FAILED - #{response&.body}")
+      end
     rescue => e
       logger.error("#{asin_code(url)}: FAILED - #{e.message}")
     end

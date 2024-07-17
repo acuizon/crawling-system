@@ -1,7 +1,6 @@
 require 'sinatra'
 require 'sinatra/custom_logger'
 require 'logger'
-require 'zlib'
 
 Dir[File.join(File.dirname(__FILE__), 'app', 'models', '*.rb')].each { |file| require file }
 
@@ -19,10 +18,8 @@ post '/crawlbase-webhook' do
     status 200
   else
     # process here
-    result = Zlib::GzipReader.new(request.body).read
-    parsed = JSON.parse(result)
-
-    logger.info "Webhook callback: #{parsed}"
+    cp = CrawlerPuller.new(request.body)
+    cp.process
 
     status 200
   end
