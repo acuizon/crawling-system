@@ -16,13 +16,12 @@ post '/crawlbase-webhook' do
     settings.mutex.synchronize do
       logger.info "Crawlbase Monitoring: #{request.user_agent}"
     end
-
-    status 200
-  else
-    # process here
+  elsif request.user_agent == "Crawlbase Delivery Bot 1.0" && request.content_type == "gzip/json"
     cp = CrawlerPuller.new(request.body, settings.mutex)
     cp.process
-
-    status 200
   end
+
+  status 200
 end
+
+CrawlerPusher.new("asins.json").process
