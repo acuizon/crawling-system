@@ -3,22 +3,32 @@ require 'zlib'
 
 class CrawlerPuller
 
-  attr_accessor :body, :logger
+  attr_accessor :body, :logger, :mutex
 
-  def initialize(body)
+  def initialize(body, mutex = Mutex.new)
     @body = body
     @logger = Logger.new("log/puller.log")
+    @mutex = mutex
   end
 
   def process
+    filename = nil
     Thread.new do 
       begin
         result = Zlib::GzipReader.new(body).read
+        parsed = JSON.parse(result)
 
-        parse_and_write(result)
+        if parsed['pc_status'] == 200
+          filename = asin_code(parsed['url'])
+          create_json_file(filename, parsed['body'])
+        end
       rescue => e
-        logger.error("#{e.message}")
+        error_log("#{e.message}")
       end
+    end.join
+
+    if filename
+      CrawlerExporter.new(filename, mutex).process
     end
   end
 
@@ -28,15 +38,25 @@ class CrawlerPuller
     url.split("/").last
   end
 
-  def parse_and_write(result)
-    parsed = JSON.parse(result)
-    filename = asin_code(parsed['url'])
+  def create_json_file(filename, body)
     if filename
       File.open("output/#{filename}.json", "w") do |f|
-        f.puts(parsed)
+        f.puts(body)
       end
 
-      logger.info("#{asin_code(parsed['url'])}: Parsed Webhook body and stored output in JSON file: #{filename}.json")
+      info_log("#{filename}: Parsed Webhook body and stored output in JSON file: #{filename}.json")
+    end
+  end
+
+  def info_log(msg)
+    mutex.synchronize do
+      logger.info(msg)
+    end
+  end
+
+  def error_log(msg)
+    mutex.synchronize do
+      logger.error(msg)
     end
   end
 
